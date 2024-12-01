@@ -59,16 +59,15 @@ def Parser.foldlMany1 (f : α → β → α) (init : β → α) (p : Parser β)
     | none => none
     | some (x, n') => foldlMany f (init x) p b n'
 
-def Parser.many (p : Parser α) : Parser (List α)
-  := List.reverse <$> p.foldlMany (flip List.cons) []
+def Parser.many (p : Parser α) : Parser (Array α)
+  := p.foldlMany Array.push #[]
 
 private abbrev List1 α := { xs : List α // xs ≠ [] }
 
-def Parser.many1 (p : Parser α) : Parser { xs : List α // xs ≠ [] }
-  := p.foldlMany1 (α:={ xs : List α // _ })
-    (λ⟨xs, _⟩ x => ⟨x :: xs, by intro _; contradiction⟩)
-    (λx => ⟨[x], by intro _; contradiction⟩)
-    <&> λ⟨xs, n⟩ => ⟨xs.reverse, List.reverse_ne_nil_iff.mpr n⟩
+def Parser.many1 (p : Parser α) : Parser { xs : Array α // xs ≠ #[] }
+  := p.foldlMany1 (α:={ xs : Array α // _ })
+    (λ⟨xs, _⟩ x => ⟨xs.push x, by intro p; injection p; simp at *⟩)
+    (λx => ⟨#[x], by intro p; injection p; contradiction⟩)
 
 def Parser.nat : Parser Nat
   := (anyChar.satisfies Char.isDigit).foldlMany1

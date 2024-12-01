@@ -3,18 +3,19 @@ import Init.Data.List.Basic
 
 section Parser
 open Parser
-def parser : Parser (List (Int × Int))
+def parser : Parser (Array (Int × Int))
   := line.many
   where line := Prod.mk <$> int <* whitespace <*> int <* string "\n"
 end Parser
 
-def solution1 : List (Int × Int) → Nat
+def solution1 : Array (Int × Int) → Nat
   | input => let (xs, ys) := input.unzip
-    Nat.sum $ List.zipWith (Int.natAbs $ · - ·) xs.mergeSort ys.mergeSort
+    Array.foldl (· + ·) 0
+      $ Array.zipWith xs.qsortOrd ys.qsortOrd (Int.natAbs $ · - ·)
 
-def solution2 : List (Int × Int) → Int
+def solution2 : Array (Int × Int) → Int
   | input => let (xs, ys) := input.unzip
-    List.foldl (· + ·) 0 $ xs.map λx => x * ys.count x
+    Array.foldl (· + ·) 0 $ xs.map λx => x * ys.toList.count x
 
 def main : IO Unit := do
   match parser.parse (← IO.allStdin) with
