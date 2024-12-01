@@ -17,10 +17,11 @@ def solution1 : Array (Int × Int) → Nat
 def solution2 : Array (Int × Int) → Int
   | input =>
     let (left, right) := input.unzip
-    let counts : Lean.RBMap Int Nat compare
-      := right.foldl (λm y => m.insert y (m.findD y 0 + 1)) {}
-    left.map (λx => x * counts.findD x 0)
-      |> Array.foldl (· + ·) 0
+    let counts : Array Int → Lean.RBMap Int Int compare
+      := Array.foldl (λm y => m.insert y (m.findD y 0 + 1)) {}
+    Lean.RBMap.intersectBy (· * · * ·) (counts left) (counts right)
+      |> (·.toList.map Prod.snd)
+      |> List.foldl (· + ·) 0
 
 def main : IO Unit := do
   match parser.parse (← IO.allStdin) with
