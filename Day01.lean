@@ -10,16 +10,17 @@ def parser : Parser (Array (Int × Int))
 end Parser
 
 def solution1 : Array (Int × Int) → Nat
-  | input => let (xs, ys) := input.unzip
-    Array.foldl (· + ·) 0
-      $ Array.zipWith xs.qsortOrd ys.qsortOrd (Int.natAbs $ · - ·)
+  | input => let (left, right) := input.unzip
+    Array.zipWith left.qsortOrd right.qsortOrd (Int.natAbs $ · - ·)
+      |> Array.foldl (· + ·) 0
 
 def solution2 : Array (Int × Int) → Int
   | input =>
-    let (xs, ys) := input.unzip
+    let (left, right) := input.unzip
     let counts : Lean.RBMap Int Nat compare
-      := ys.foldl (λm y => m.insert y (m.findD y 0 + 1)) Lean.RBMap.empty
-    Array.foldl (· + ·) 0 $ xs.map λx => x * counts.findD x 0
+      := right.foldl (λm y => m.insert y (m.findD y 0 + 1)) {}
+    left.map (λx => x * counts.findD x 0)
+      |> Array.foldl (· + ·) 0
 
 def main : IO Unit := do
   match parser.parse (← IO.allStdin) with
