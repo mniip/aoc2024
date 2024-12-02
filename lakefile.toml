@@ -1,6 +1,6 @@
 name = "aoc2024"
 version = "0.1.0"
-defaultTargets = ["01"]
+defaultTargets = ["01", "02"]
 
 [[lean_lib]]
 name = "Aoc2024"
@@ -8,3 +8,7 @@ name = "Aoc2024"
 [[lean_exe]]
 name = "01"
 root = "Day01"
+
+[[lean_exe]]
+name = "02"
+root = "Day02"
