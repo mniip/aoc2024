@@ -1,6 +1,4 @@
 import Aoc2024
-import Init.Data.List.Basic
-import Lean.Data.RBMap
 
 section Parser
 open Parser
