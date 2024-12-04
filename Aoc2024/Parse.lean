@@ -34,10 +34,13 @@ def Parser.bytes (bytes : ByteArray) : Parser Unit
 
 def Parser.string (s : String) : Parser Unit := bytes s.toUTF8
 
-def Parser.optional (p : Parser α) : Parser (Option α)
+def Parser.orElse (p q : Parser α) : Parser α
   := λb n => match p b n with
-    | none => some (none, n)
-    | some (x, n') => some (some x, n')
+    | some (x, n') => some (x, n')
+    | none => q b n
+
+def Parser.optional (p : Parser α) : Parser (Option α)
+  := (some <$> p).orElse (pure none)
 
 def Parser.satisfies (pred : α → Bool) (p : Parser α) : Parser α
   := λb n => do
