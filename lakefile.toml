@@ -16,3 +16,7 @@ root = "Day02"
 [[lean_exe]]
 name = "03"
 root = "Day03"
+
+[[lean_exe]]
+name = "04"
+root = "Day04"
