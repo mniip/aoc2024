@@ -8,7 +8,7 @@ end Parser
 
 def solution1 (input : Array (Array Char)) : Nat
   := checks.foldl
-    (λacc check => if check.all λ(ch, x, y) => input[x]?.bind (·[y]?) = some ch
+    (λacc check => if check.all λ(ch, x, y) => input[y]?.bind (·[x]?) = some ch
       then acc + 1
       else acc)
     0
@@ -26,7 +26,7 @@ def solution1 (input : Array (Array Char)) : Nat
 
 def solution2 (input : Array (Array Char)) : Nat
   := checks.foldl
-    (λacc check => if check.all λ(ch, x, y) => input[x]?.bind (·[y]?) = some ch
+    (λacc check => if check.all λ(ch, x, y) => input[y]?.bind (·[x]?) = some ch
       then acc + 1
       else acc)
     0
