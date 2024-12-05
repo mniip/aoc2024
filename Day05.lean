@@ -13,7 +13,6 @@ def List.pairs : List α → List (α × α)
   | x :: xs => ((x, ·) <$> xs) ++ pairs xs
   | [] => []
 
-
 def solution1 : Array (Int × Int) × Array (Array Int) → Int
   | (rules, pages) => pages
     |> Array.filter (λbook => book.toList.pairs.all rules.elem)
@@ -27,11 +26,4 @@ def solution2 : Array (Int × Int) × Array (Array Int) → Int
     |> Array.filterMap (λbook => book[book.size / 2]?)
     |> Array.foldl (· + ·) 0
 
-def main : IO Unit := do
-  match parser.parse (← IO.allStdin) with
-  | none =>
-    IO.eprintln "Parse error"
-    return
-  | some input =>
-    IO.println $ solution1 input
-    IO.println $ solution2 input
+def main : IO Unit := IO.main parser solution1 solution2

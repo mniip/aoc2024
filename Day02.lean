@@ -57,11 +57,4 @@ def solution2 : Array (Array Nat) → Nat
     $ Check2.ok ∘ Array.foldl (Check2.push pred) Check2.init
   where pred a b := a + 1 ≤ b && b ≤ a + 3
 
-def main : IO Unit := do
-  match parser.parse (← IO.allStdin) with
-  | none =>
-    IO.eprintln "Parse error"
-    return
-  | some input =>
-    IO.println $ solution1 input
-    IO.println $ solution2 input
+def main : IO Unit := IO.main parser solution1 solution2

@@ -36,11 +36,4 @@ def solution2 : Array Insn → Int
       | (_, acc), .Dont => (false, acc)
     (true, 0)
 
-def main : IO Unit := do
-  match parser.parse (← IO.allStdin) with
-  | none =>
-    IO.eprintln "Parse error"
-    return
-  | some input =>
-    IO.println $ solution1 input
-    IO.println $ solution2 input
+def main : IO Unit := IO.main parser solution1 solution2

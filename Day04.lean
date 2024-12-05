@@ -47,11 +47,4 @@ def solution2 (input : Array (Array Char)) : Nat
           let y ← (y₀ + δy).toNat'
           pure (ch, x, y)
 
-def main : IO Unit := do
-  match parser.parse (← IO.allStdin) with
-  | none =>
-    IO.eprintln "Parse error"
-    return
-  | some input =>
-    IO.println $ solution1 input
-    IO.println $ solution2 input
+def main : IO Unit := IO.main parser solution1 solution2
