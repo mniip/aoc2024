@@ -37,64 +37,63 @@ def Dir.delta : Dir → Int × Int
   | left => (-1, 0)
   | up => (0, -1)
 
-def step : Array (Array Bool) → (Dir × Nat × Nat) → Option (Dir × Nat × Nat)
-  | board, (d, x, y) => do
-      let (Δx, Δy) := d.delta
+inductive Advancement (α : Type) : Type where
+  | Advanced : α → Advancement α
+  | Blocked : α → Advancement α
+  | OffBoard : Advancement α
+
+def advance (board : Array (Array Bool))
+  : (Dir × Nat × Nat) → Advancement (Dir × Nat × Nat)
+  | (d, x, y) =>
+    let (Δx, Δy) := d.delta
+    match do
       let x' ← (x + Δx).toNat'
       let y' ← (y + Δy).toNat'
       let row ← board[y']?
       let cell ← row[x']?
-      if cell
-      then pure (d.cw, x, y)
-      else pure (d, x', y')
+      pure (cell, x', y')
+    with
+    | none => .OffBoard
+    | some (true, _, _) => .Blocked (d.cw, x, y)
+    | some (false, x', y') => .Advanced (d, x', y')
 
-partial def numVisited
-  : Array (Array Bool) → (Dir × Nat × Nat) → Option (Unit → Nat)
-  | board, p₀ => go board p₀
+partial def solution1 : Array (Array Bool) × Nat × Nat → Nat
+  | (board, x₀, y₀) => go board (Dir.up, x₀, y₀)
     (Lean.RBMap.empty (cmp:=(@lexOrd _ _ _ lexOrd).compare))
   where
     go board p seen :=
       let seen' := seen.insert p ()
-      if (seen.find? p).isSome
-      then none
-      else match step board p with
-        | some p' => go board p' seen'
-        | none => some λ_ => seen'.fold (λm (_, x, y) _ => m.insert (x, y) Unit)
-          (Lean.RBMap.empty (cmp:=lexOrd.compare))
-          |> Lean.RBMap.size
+      match advance board p with
+      | .Advanced p' => go board p' seen'
+      | .Blocked p' => go board p' seen'
+      | .OffBoard => seen'.fold (λm (_, x, y) _ => m.insert (x, y) Unit)
+        (Lean.RBMap.empty (cmp:=lexOrd.compare))
+        |> Lean.RBMap.size
 
-def solution1 : Array (Array Bool) × Nat × Nat → Nat
-  | (board, x₀, y₀) => (numVisited board (Dir.up, x₀, y₀)).get! ()
-
-def Array.forOnce (f : α → β × List β) (xs : Array α) : Array β × List (Array β)
-  := if _ : xs.isEmpty
-    then (Array.empty, [])
-    else
-      have p : xs.size - 1 < xs.size := match xs with
-        | ⟨[]⟩ => by contradiction
-        | ⟨_ :: _⟩ => by
-          simp only
-            [ size_toArray
-            , List.length_cons
-            , Nat.add_one_sub_one
-            , Nat.lt_add_one
-            ]
-      have h : xs.back?.isSome := by rw
-        [ Array.back?.eq_1
-        , Array.get?_eq_toList_get?
-        , List.get?_eq_get p
-        ] <;> rfl
-      match Array.forOnce f xs.pop, f (xs.back?.get h) with
-      | (olds, news), (old, new)
-        => (olds.push old, olds.push <$> new ++ (·.push old) <$> news)
-  termination_by xs.size
-
-def solution2 : Array (Array Bool) × Nat × Nat → Nat
-  | (board, x₀, y₀) => board
-    |> Array.forOnce (Array.forOnce λ
-      | false => (false, [true])
-      | true => (true, []))
-    |> Prod.snd
-    |> List.countP (λboard' => (numVisited board' (Dir.up, x₀, y₀)).isNone)
+partial def solution2 : Array (Array Bool) × Nat × Nat → Nat
+  | (board, x₀, y₀) => go1 board (Dir.up, x₀, y₀)
+    (Lean.RBMap.empty (cmp:=lexOrd.compare))
+    (Lean.RBMap.empty (cmp:=(@lexOrd _ _ _ lexOrd).compare))
+  where
+    go1 board p notchosen seen :=
+      let seen' := seen.insert p ()
+      match advance board p with
+      | .OffBoard => 0
+      | .Blocked p' => go1 board p' notchosen seen'
+      | .Advanced p' =>
+        let loc := (p'.2.1, p'.2.2)
+        if (notchosen.find? loc).isSome
+        then go1 board p' notchosen seen'
+        else
+          let board' := board.modify loc.2 λrow => row.modify loc.1 λ_ => true
+          go2 board' p seen + go1 board p' (notchosen.insert loc ()) seen'
+    go2 board p seen := if (seen.find? p).isSome
+      then 1
+      else
+        let seen' := seen.insert p ()
+        match advance board p with
+        | .OffBoard => 0
+        | .Blocked p' => go2 board p' seen'
+        | .Advanced p' => go2 board p' seen'
 
 def main : IO Unit := IO.main parser solution1 solution2
