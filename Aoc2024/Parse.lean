@@ -1,34 +1,42 @@
 def Parser α
-  := (b : ByteArray) → Fin (b.size + 1) → Option (α × Fin (b.size + 1))
+  := (b : ByteArray)
+    → (i : {i // i ≤ b.size})
+    → Option (α × {j // i.val ≤ j ∧ j ≤ b.size})
 
 instance : Monad Parser where
-  pure x := λ_ n => (x, n)
-  bind k m := λb n => match k b n with
+  pure x := λ_ ⟨n, q⟩ => some (x, ⟨n, ⟨Nat.le_refl _, q⟩⟩)
+  bind k m := λb ⟨n, q⟩ => match k b ⟨n, q⟩ with
     | none => none
-    | some (x, n') => m x b n'
+    | some (x, ⟨n', ⟨p', q'⟩⟩) => match m x b ⟨n', q'⟩ with
+      | none => none
+      | some (y, ⟨n'', ⟨p'', q''⟩⟩)
+        => some (y, ⟨n'', ⟨Nat.le_trans p' p'', q''⟩⟩)
 
 def Parser.eof : Parser Unit
-  := λb n => if n == b.size then some ((), n) else none
+  := λb ⟨n, q⟩ => if n == b.size
+    then some ((), ⟨n, ⟨Nat.le_refl _, q⟩⟩)
+    else none
 
 def Parser.parse (p : Parser α) : ByteArray → Option α
-  := λb => Prod.fst <$> (p <* eof) b 0
+  := λb => Prod.fst <$> (p <* eof) b ⟨0, Nat.zero_le _⟩
 
 def Parser.anyChar : Parser Char
-  := λb n => do
+  := λb ⟨n, _⟩ => do
     let ch ← String.utf8DecodeChar? b n
     let n' := n + ch.utf8Size
-    if p : n' < b.size + 1 then some (ch, ⟨n', p⟩) else none
+    if q : n' ≤ b.size
+    then some (ch, ⟨n', ⟨Nat.le_add_right _ _, q⟩⟩)
+    else none
 
 def Parser.bytes (bytes : ByteArray) : Parser Unit
-  := λb n => if p : n + bytes.size < b.size + 1
+  := λb n => if q : n + bytes.size ≤ b.size
     then
       let rec
-        go (i : Nat) : Option (Unit × Fin (b.size + 1))
-          := if _ : i < bytes.size
-            then if b[n + i] == bytes[i]
-              then go (i + 1)
-              else none
-            else some ((), ⟨n + bytes.size, p⟩)
+        go (i : Nat) := if _ : i < bytes.size
+          then if b[n + i] == bytes[i]
+            then go (i + 1)
+            else none
+          else some ((), ⟨n + bytes.size, ⟨Nat.le_add_right _ _, q⟩⟩)
       go 0
     else none
 
@@ -42,6 +50,11 @@ def Parser.orElse (p q : Parser α) : Parser α
 def Parser.optional (p : Parser α) : Parser (Option α)
   := (some <$> p).orElse (pure none)
 
+def Parser.filterMap (f : α → Option β) (p : Parser α) : Parser β
+  := λb n => do
+    let (x, n') ← p b n
+    (f x).map (·, n')
+
 def Parser.satisfies (pred : α → Bool) (p : Parser α) : Parser α
   := λb n => do
     let (x, n') ← p b n
@@ -50,17 +63,23 @@ def Parser.satisfies (pred : α → Bool) (p : Parser α) : Parser α
 instance : Inhabited (Parser α) where
   default := λ_ _ => none
 
-partial def Parser.foldlMany (f : α → β → α) (init : α) (p : Parser β)
+partial def Parser.loop (p : α → Parser (Sum β α)) (init : α) : Parser β
+  := p init >>= λ
+    | .inl y => pure y
+    | .inr x => loop p x
+
+def Parser.until (p : Parser α) (q : Parser β) : Parser (Array α)
+  := Parser.loop
+    (λxs => (Functor.mapConst (.inl xs) q).orElse ((.inr ∘ xs.push) <$> p))
+    Array.empty
+
+def Parser.foldlMany (f : α → β → α) (init : α) (p : Parser β)
   : Parser α
-  := λb n => match p b n with
-    | none => some (init, n)
-    | some (x, n') => foldlMany f (f init x) p b n'
+  := Parser.loop (λx => ((.inr ∘ f x) <$> p).orElse (pure (.inl x))) init
 
 def Parser.foldlMany1 (f : α → β → α) (init : β → α) (p : Parser β)
   : Parser α
-  := λb n => match p b n with
-    | none => none
-    | some (x, n') => foldlMany f (init x) p b n'
+  := (init <$> p) >>= p.foldlMany f
 
 def Parser.many (p : Parser α) : Parser (Array α)
   := p.foldlMany Array.push #[]

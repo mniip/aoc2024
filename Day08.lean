@@ -4,10 +4,11 @@ import Lean.Data.RBMap
 section Parser
 open Parser
 def parser : Parser (Array (Array (Option Char)))
-  := (cell.many <* string "\n").many
+  := (cell.until (string "\n")).many
   where
-    cell := (Functor.mapConst none $ string ".").orElse
-      (some <$> anyChar.satisfies (· != '\n'))
+    cell := anyChar <&> λ
+      | '.' => none
+      | ch => some ch
 end Parser
 
 def asMap (input : Array (Array (Option Char)))

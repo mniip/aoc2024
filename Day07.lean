@@ -5,8 +5,7 @@ open Parser
 def parser : Parser (Array (Nat × Array Nat))
   := (Prod.mk
     <$> (nat <* string ":")
-    <*> (string " " *> nat).many
-    <* string "\n").many
+    <*> (whitespace *> nat).until (string "\n")).many
 end Parser
 
 def canEvaluateTo (preimages : Nat → Nat → List Nat) (arr : Array Nat)

@@ -3,7 +3,7 @@ import Aoc2024
 section Parser
 open Parser
 def parser : Parser (Array (Array Char))
-  := ((anyChar.satisfies (· != '\n')).many <* string "\n").many
+  := (anyChar.until (string "\n")).many
 end Parser
 
 def solution1 (input : Array (Array Char)) : Nat

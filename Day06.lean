@@ -6,7 +6,7 @@ open Parser
 def parser : Parser (Array (Array Bool) × Nat × Nat)
   := board
   where
-    line := ((anyChar.satisfies (· != '\n')).many <* string "\n")
+    line := anyChar.until (string "\n")
       <&> λchars => (chars.map (· == '#'), chars.findIdx? (· == '^'))
     board := do
       let lines ← line.many
