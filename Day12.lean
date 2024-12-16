@@ -11,7 +11,7 @@ partial def solution1 : SomeRect Char → Nat
     let rec region (seen : Rect width height Bool)
       | p, ch =>
         let neighbors := Dir4.list.map
-          λd => Rect.index? (d.advance (p.1, p.2))
+          λd => Rect.index? (d.advance' p)
             |> Option.filter (board[·] = ch)
         neighbors.reduceOption.foldl
           (λ(seen, area, perim) p => if seen[p] = true

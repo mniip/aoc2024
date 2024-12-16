@@ -24,7 +24,7 @@ def List.pairs : List α → List (α × α)
   | x :: xs => (x, ·) <$> xs ++ pairs xs
 
 def List.upairs : List α → List (α × α)
-  | xs => xs.pairs.bind λ(a, b) => [(a, b), (b, a)]
+  | xs => xs.pairs.flatMap λ(a, b) => [(a, b), (b, a)]
 
 def solution1 : SomeRect (Option Char) → Nat
   | ⟨width, height, board⟩ =>

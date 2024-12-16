@@ -21,6 +21,6 @@ def solution2 : Array (Int × Int) → Int
       := Array.foldl (λm y => m.insert y (m.findD y 0 + 1)) {}
     Lean.RBMap.intersectBy (· * · * ·) (counts left) (counts right)
       |> (·.toList.map Prod.snd)
-      |> List.foldl (· + ·) 0
+      |> List.sum
 
 def main : IO Unit := IO.main parser solution1 solution2

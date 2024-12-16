@@ -9,8 +9,8 @@ end Parser
 def solution1 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
     let checks :=
-      (List.range height).bind λy₀ =>
-      (List.range width).bind λx₀ =>
+      (List.range height).flatMap λy₀ =>
+      (List.range width).flatMap λx₀ =>
       Dir8.list.filterMap λd =>
         "XMAS".toList.zip <$>
           (List.range 4).mapA λi => Rect.index? (d.advanceBy i (x₀, y₀))
@@ -19,8 +19,8 @@ def solution1 : SomeRect Char → Nat
 def solution2 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
     let checks :=
-      (List.range height).bind λy₀ =>
-      (List.range width).bind λx₀ =>
+      (List.range height).flatMap λy₀ =>
+      (List.range width).flatMap λx₀ =>
       Dir4.list.filterMap λd =>
         [ ('M', -1, -1)
         , ('M', -1, 1)

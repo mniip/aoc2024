@@ -45,7 +45,7 @@ def extended_gcd (r s t r' s' t' : Int) : Int × Int × Int :=
 def linsolve (a b c d x y : Int) : LinSolution :=
   let det := a * d - b * c
   if det ≠ 0
-  then if (x * d - b * y) % det = 0 ∧ (a * y - x * c) % det = 0
+  then if det ∣ x * d - b * y ∧ det ∣ a * y - x * c
     then .unique  ((x * d - b * y) / det) ((a * y - x * c) / det)
     else .none
   else if a * y - x * c = 0
@@ -57,7 +57,7 @@ def linsolve (a b c d x y : Int) : LinSolution :=
     else .none
   where
     linear a b x := let (gcd, e₀, f₀) := extended_gcd a 1 0 b 0 1
-      if x % gcd = 0
+      if gcd ∣ x
       then let x₀ := x / gcd
         .line (e₀ * x₀) (f₀ * x₀) (-b / gcd) (a / gcd)
       else .none

@@ -20,8 +20,8 @@ def solution : Nat → Array Nat → Nat
   where
     evolve n := if n = 0
       then [1]
-      else if digits n % 2 = 0
-        then [n / 10 ^ (digits n / 2), n % 10 ^  (digits n / 2)]
+      else if 2 ∣ digits n
+        then [n / 10 ^ (digits n / 2), n % 10 ^ (digits n / 2)]
         else [n * 2024]
     digits (n : Nat) : Nat := if n ≥ 10 then digits (n / 10) + 1 else 1
 

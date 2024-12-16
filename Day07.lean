@@ -30,20 +30,20 @@ def canEvaluateTo (preimages : Nat → Nat → List Nat) (arr : Array Nat)
 def solution1 : Array (Nat × Array Nat) → Nat
   | input => input.toList
     |> List.filterMap (λ(tgt, arr) => (some tgt).filter (canEvaluateTo pre arr))
-    |> List.foldl (· + ·) 0
+    |> List.sum
   where
     pre x tgt
       := (if tgt ≥ x then [tgt - x] else [])
-      ++ (if tgt % x == 0 then [tgt / x] else [])
+      ++ (if x ∣ tgt then [tgt / x] else [])
 
 def solution2 : Array (Nat × Array Nat) → Nat
   | input => input.toList
     |> List.filterMap (λ(tgt, arr) => (some tgt).filter (canEvaluateTo pre arr))
-    |> List.foldl (· + ·) 0
+    |> List.sum
   where
     pre x tgt
       := (if tgt ≥ x then [tgt - x] else [])
-      ++ (if tgt % x == 0 then [tgt / x] else [])
+      ++ (if x ∣ tgt then [tgt / x] else [])
       ++ (if tgt % 10 ^ digits x == x then [tgt / 10 ^ digits x] else [])
 
     digits (n : Nat) : Nat := if n ≥ 10 then digits (n / 10) + 1 else 1

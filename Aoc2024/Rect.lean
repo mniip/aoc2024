@@ -95,11 +95,11 @@ instance : Functor (Rect width height) where
 
 def Rect.mapIdx (r : Rect width height α) (f : Fin width × Fin height → α → β)
   : Rect width height β :=
-  ⟨ r.val.mapIdx λy ⟨row, e⟩ =>
-    ⟨ row.mapIdx λx v => f (e ▸ x, r.property ▸ y) v
-    , by rw [Array.size_mapIdx, e]
+  ⟨ r.val.mapFinIdx λy ⟨row, e⟩ =>
+    ⟨ row.mapFinIdx λx v => f (e ▸ x, r.property ▸ y) v
+    , by rw [Array.size_mapFinIdx, e]
     ⟩
-  , by rw [Array.size_mapIdx, r.property]
+  , by rw [Array.size_mapFinIdx, r.property]
   ⟩
 
 def Rect.foldl (r : Rect width height α) : (β → α → β) → β → β
