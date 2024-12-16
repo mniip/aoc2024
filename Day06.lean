@@ -14,46 +14,23 @@ def parser : Parser Input
       | some start => some ⟨width, height, board.map (· == '#'), start⟩
 end Parser
 
-inductive Dir where
-  | right
-  | down
-  | left
-  | up
-  deriving Ord
-
-def Dir.cw : Dir → Dir
-  | right => down
-  | down => left
-  | left => up
-  | up => right
-
-def Dir.delta : Dir → Int × Int
-  | right => (1, 0)
-  | down => (0, 1)
-  | left => (-1, 0)
-  | up => (0, -1)
-
 inductive Advancement (α : Type) : Type where
   | Advanced : α → Advancement α
   | Blocked : α → Advancement α
   | OffBoard : Advancement α
 
 def advance (board : Rect width height Bool)
-  : Dir × (Fin width × Fin height)
-    → Advancement (Dir × (Fin width × Fin height))
-  | (d, (x, y)) =>
-    match
-      do
-        let (Δx, Δy) := d.delta
-        let p ← Rect.index? (x + Δx, y + Δy)
-        pure (board[p], p)
-    with
+  : Dir4 × (Fin width × Fin height)
+    → Advancement (Dir4 × (Fin width × Fin height))
+  | (d, p) =>
+    match Rect.index? (d.advance' p) with
     | none => .OffBoard
-    | some (true, _) => .Blocked (d.cw, (x, y))
-    | some (false, p) => .Advanced (d, p)
+    | some p' => if board[p'] = true
+      then .Blocked (d.cw, p)
+      else .Advanced (d, p')
 
 partial def solution1 : Input → Nat
-  | ⟨_, _, board, p₀⟩ => go board (Dir.up, p₀)
+  | ⟨_, _, board, p₀⟩ => go board (Dir4.N, p₀)
     (Lean.RBMap.empty (cmp:=(@lexOrd _ _ _ lexOrd).compare))
   where
     go {width height} (board : Rect width height Bool) p seen :=
@@ -66,28 +43,28 @@ partial def solution1 : Input → Nat
         |> Lean.RBMap.size
 
 partial def solution2 : Input → Nat
-  | ⟨_, _, board, p₀⟩ => go1 board (Dir.up, p₀)
+  | ⟨_, _, board, p₀⟩ => go1 board (Dir4.N, p₀)
     (Lean.RBMap.empty (cmp:=lexOrd.compare))
     (Lean.RBMap.empty (cmp:=(@lexOrd _ _ _ lexOrd).compare))
   where
-    go1 {width height} (board : Rect width height Bool) p notchosen seen :=
-      let seen' := seen.insert p ()
-      match advance board p with
+    go1 {width height} (board : Rect width height Bool) s notchosen seen :=
+      let seen' := seen.insert s ()
+      match advance board s with
       | .OffBoard => 0
-      | .Blocked p' => go1 board p' notchosen seen'
-      | .Advanced p' =>
-        if (notchosen.find? p'.2).isSome
-        then go1 board p' notchosen seen'
-        else go2 (board.set p'.2 true) p seen
-          + go1 board p' (notchosen.insert p'.2 ()) seen'
-    go2 {width height} (board : Rect width height Bool) p seen
-      := if (seen.find? p).isSome
+      | .Blocked s' => go1 board s' notchosen seen'
+      | .Advanced s' =>
+        if (notchosen.find? s'.2).isSome
+        then go1 board s' notchosen seen'
+        else go2 (board.set s'.2 true) s seen
+          + go1 board s' (notchosen.insert s'.2 ()) seen'
+    go2 {width height} (board : Rect width height Bool) s seen
+      := if (seen.find? s).isSome
         then 1
         else
-          let seen' := seen.insert p ()
-          match advance board p with
+          let seen' := seen.insert s ()
+          match advance board s with
           | .OffBoard => 0
-          | .Blocked p' => go2 board p' seen'
-          | .Advanced p' => go2 board p' seen'
+          | .Blocked s' => go2 board s' seen'
+          | .Advanced s' => go2 board s' seen'
 
 def main : IO Unit := IO.main parser solution1 solution2

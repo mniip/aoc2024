@@ -8,26 +8,27 @@ end Parser
 
 def solution1 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
-    let checks := (List.range height).bind λy₀ => (List.range width).bind λx₀ =>
-      "XMAS".toList.zip <$> dirs.filterMap λ(Δx, Δy) =>
-        (List.range 4).mapA λ(i : Nat) => Rect.index? (x₀ + i * Δx, y₀ + i * Δy)
+    let checks :=
+      (List.range height).bind λy₀ =>
+      (List.range width).bind λx₀ =>
+      Dir8.list.filterMap λd =>
+        "XMAS".toList.zip <$>
+          (List.range 4).mapA λi => Rect.index? (d.advanceBy i (x₀, y₀))
     checks.countP (·.all λ(ch, p) => board.get p = some ch)
-  where
-    dirs : List (Int × Int)
-      := [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
 
 def solution2 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
-    let checks := (List.range height).bind λy₀ => (List.range width).bind λx₀ =>
-      dirs.filterMap λ(Δx, Δy) =>
-        [ ('M', -Δx, -Δy)
+    let checks :=
+      (List.range height).bind λy₀ =>
+      (List.range width).bind λx₀ =>
+      Dir4.list.filterMap λd =>
+        [ ('M', -1, -1)
+        , ('M', -1, 1)
         , ('A', 0, 0)
-        , ('S', Δx, Δy)
-        , ('M', Δy, -Δx)
-        , ('S', -Δy, Δx)
-        ].mapA λ(ch, δx, δy) => (ch, ·) <$> Rect.index? (x₀ + δx, y₀ + δy)
+        , ('S', 1, -1)
+        , ('S', 1, 1)
+        ].mapA λ(ch, along, ccw) =>
+          (ch, ·) <$> Rect.index? (d.transform along ccw (x₀, y₀))
     checks.countP (·.all λ(ch, p) => board.get p = some ch)
-  where
-    dirs : List (Int × Int) := [(1, 1), (-1, 1), (-1, -1), (1, -1)]
 
 def main : IO Unit := IO.main parser solution1 solution2

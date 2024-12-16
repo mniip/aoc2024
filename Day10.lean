@@ -21,9 +21,9 @@ def accumTrailheads (mempty : M) (mappend : M → M → M)
   := Fin.foldr n (λi targets
     => Rect.tabulate λp => if board[p] = i.castSucc
       then
-        [(1, 0), (0, 1), (-1, 0), (0, -1)].foldl
-          (λacc (Δx, Δy) =>
-            match targets[(Int.ofNat p.1 + Δx, Int.ofNat p.2 + Δy)]? with
+        Dir4.list.foldl
+          (λacc d =>
+            match targets[d.advance' p]? with
             | none => acc
             | some val => mappend acc val)
           mempty

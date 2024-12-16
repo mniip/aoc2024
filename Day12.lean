@@ -1,5 +1,4 @@
 import Aoc2024
-import Lean.Data.RBMap
 
 section Parser
 open Parser
@@ -10,9 +9,9 @@ end Parser
 partial def solution1 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
     let rec region (seen : Rect width height Bool)
-      | (x, y), ch =>
-        let neighbors := [(1, 0), (0, 1), (-1, 0), (0, -1)].map
-          λ(Δx, Δy) => Rect.index? (Int.ofNat x + Δx, Int.ofNat y + Δy)
+      | p, ch =>
+        let neighbors := Dir4.list.map
+          λd => Rect.index? (d.advance (p.1, p.2))
             |> Option.filter (board[·] = ch)
         neighbors.reduceOption.foldl
           (λ(seen, area, perim) p => if seen[p] = true
@@ -20,7 +19,7 @@ partial def solution1 : SomeRect Char → Nat
             else
               let (seen', area', perim') := region seen p ch
               (seen', area + area', perim + perim'))
-          (seen.set (x, y) true, 1, neighbors.countP Option.isNone)
+          (seen.set p true, 1, neighbors.countP Option.isNone)
     board.foldlIdx (λ(seen, sum) p ch => if seen[p] = true
       then (seen, sum)
       else let (seen', area, perim) := region seen p ch
@@ -31,22 +30,19 @@ partial def solution1 : SomeRect Char → Nat
 partial def solution2 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
     let rec region (seen : Rect width height Bool)
-      | (x, y), ch =>
-        let neighbor := λ(Δx, Δy)
-          => Rect.index? (Int.ofNat x + Δx, Int.ofNat y + Δy)
-          |> Option.filter (board[·] = ch)
-        let dirs := [(1, 0), (0, 1), (-1, 0), (0, -1)]
-        let ok := Option.isSome ∘ neighbor
-        let isCorner := λ(Δx, Δy)
-          => ¬ok (Δx, Δy) ∧ (¬ok (-Δy, Δx) ∨ ok (Δx - Δy, Δx + Δy))
-        dirs.filterMap neighbor
+      | p, ch =>
+        let ok := λp' => board[p']? = some ch
+        let corners := Dir4.list.countP λd => ¬ok (d.transform' 1 0 p)
+          ∧ (¬ok (d.transform' 0 1 p) ∨ ok (d.transform' 1 1 p))
+        Dir4.list.filterMap
+          (λd => (Rect.index? (d.advance' p)).filter (board[·] = ch))
           |> List.foldl
             (λ(seen, area, corners) p => if seen[p] = true
               then (seen, area, corners)
               else
                 let (seen', area', corners') := region seen p ch
                 (seen', area + area', corners + corners'))
-            (seen.set (x, y) true, 1, dirs.countP isCorner)
+            (seen.set p true, 1, corners)
     board.foldlIdx (λ(seen, sum) p ch => if seen[p] = true
       then (seen, sum)
       else let (seen', area, corners) := region seen p ch
