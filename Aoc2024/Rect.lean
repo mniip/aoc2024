@@ -26,7 +26,7 @@ def Rect.tabulate (f : Fin width × Fin height → α) : Rect width height α :=
  , Array.size_ofFn ..
  ⟩
 
-def Rect.toList (r : Rect width height α) : Array (Array α)
+def Rect.toArray (r : Rect width height α) : Array (Array α)
   := r.val.map Subtype.val
 
 def Rect.get (r : Rect width height α) : Fin width × Fin height → α
