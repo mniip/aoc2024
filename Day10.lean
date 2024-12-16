@@ -3,8 +3,8 @@ import Lean.Data.RBMap
 
 section Parser
 open Parser
-def parser : Parser (Array (Array (Fin 10)))
-  := (digit.until (string "\n")).many
+def parser : Parser (SomeRect (Fin 10))
+  := (digit.until (string "\n")).many.filterMap Rect.fromArray?
   where
     digit := anyChar.filterMap
       λ ch => if ch.toNat ≥ '0'.toNat
@@ -14,52 +14,34 @@ def parser : Parser (Array (Array (Fin 10)))
         else none
 end Parser
 
-def solution1 (board : Array (Array (Fin 10))) : Nat :=
-  Fin.foldr _ (λi targets => if i = Fin.last _
-    then board.zipWithIndex.foldl
-      (λm (row, y) => row.zipWithIndex.foldl
-        (λm (d, x) => if d == Fin.last _
-          then m.insert (x, y) (Lean.RBMap.empty.insert (x, y) ())
-          else m)
-        m)
-      targets
-    else board.zipWithIndex.foldl
-      (λm (row, y) => row.zipWithIndex.foldl
-        (λm (d, x) => if d == i
-          then
-            [(1, 0), (0, 1), (-1, 0), (0, -1)].filterMap
-              (λ(Δx, Δy) => targets.find? (x + Δx, y + Δy))
-            |> List.foldl
-              (Lean.RBMap.mergeBy default)
-              (Lean.RBMap.empty (cmp:=lexOrd.compare))
-            |> m.insert (x, y)
-          else m)
-        m)
-      Lean.RBMap.empty)
-    (Lean.RBMap.empty (α:=Int × Int) (cmp:=lexOrd.compare))
-  |> Lean.RBMap.fold (λsum _ targets => sum + targets.size) 0
+def accumTrailheads (mempty : M) (mappend : M → M → M)
+  (point : Fin width × Fin height → M)
+  (board : Rect width height (Fin (n + 1)))
+  : Rect width height M
+  := Fin.foldr n (λi targets
+    => Rect.tabulate λp => if board[p] = i.castSucc
+      then
+        [(1, 0), (0, 1), (-1, 0), (0, -1)].foldl
+          (λacc (Δx, Δy) =>
+            match targets[(Int.ofNat p.1 + Δx, Int.ofNat p.2 + Δy)]? with
+            | none => acc
+            | some val => mappend acc val)
+          mempty
+      else mempty)
+    (Rect.tabulate (λp => if board[p] = Fin.last _ then point p else mempty))
 
-def solution2 (board : Array (Array (Fin 10))) : Nat :=
-  Fin.foldr _ (λi targets => if i = Fin.last _
-    then board.zipWithIndex.foldl
-      (λm (row, y) => row.zipWithIndex.foldl
-        (λm (d, x) => if d == Fin.last _
-          then m.insert (x, y) 1
-          else m)
-        m)
-      targets
-    else board.zipWithIndex.foldl
-      (λm (row, y) => row.zipWithIndex.foldl
-        (λm (d, x) => if d == i
-          then
-            [(1, 0), (0, 1), (-1, 0), (0, -1)].filterMap
-              (λ(Δx, Δy) => targets.find? (x + Δx, y + Δy))
-            |> List.foldl (· + ·) 0
-            |> m.insert (x, y)
-          else m)
-        m)
-      Lean.RBMap.empty)
-    (Lean.RBMap.empty (α:=Int × Int) (cmp:=lexOrd.compare))
-  |> Lean.RBMap.fold (λsum _ targets => sum + targets) 0
+def solution1 : SomeRect (Fin 10) → Nat
+  | ⟨_, _, board⟩ =>
+    accumTrailheads
+      (Lean.RBMap.empty (cmp:=lexOrd.compare))
+      (Lean.RBMap.mergeBy default)
+      (Lean.RBMap.empty.insert · ())
+      board
+    |> (·.foldl (λsum targets => sum + targets.size) 0)
+
+def solution2 : SomeRect (Fin 10) → Nat
+  | ⟨_, _, board⟩ =>
+    accumTrailheads 0 (· + ·) (λ_ => 1) board
+    |> (·.foldl (· + ·) 0)
 
 def main : IO Unit := IO.main parser solution1 solution2

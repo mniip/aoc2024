@@ -1,21 +1,17 @@
 import Aoc2024
 import Lean.Data.RBMap
 
+abbrev Input := (width : Nat) × (height : Nat)
+  × Rect width height Bool
+  × (Fin width × Fin height)
+
 section Parser
 open Parser
-def parser : Parser (Array (Array Bool) × Nat × Nat)
-  := board
-  where
-    line := anyChar.until (string "\n")
-      <&> λchars => (chars.map (· == '#'), chars.findIdx? (· == '^'))
-    board := do
-      let lines ← line.many
-      match (lines.map Prod.fst, ·, ·)
-        <$> (lines.findSome? (λ(_, m) => m))
-        <*> (lines.findIdx? (λ(_, m) => m.isSome))
-      with
-      | none => default
-      | some res => pure res
+def parser : Parser Input
+  := (anyChar.until (string "\n")).many.filterMap Rect.fromArray?
+    |> filterMap λ⟨width, height, board⟩ => match board.findIdx? (· = '^') with
+      | none => none
+      | some start => some ⟨width, height, board.map (· == '#'), start⟩
 end Parser
 
 inductive Dir where
@@ -42,58 +38,56 @@ inductive Advancement (α : Type) : Type where
   | Blocked : α → Advancement α
   | OffBoard : Advancement α
 
-def advance (board : Array (Array Bool))
-  : (Dir × Nat × Nat) → Advancement (Dir × Nat × Nat)
-  | (d, x, y) =>
-    let (Δx, Δy) := d.delta
-    match do
-      let x' ← (x + Δx).toNat'
-      let y' ← (y + Δy).toNat'
-      let row ← board[y']?
-      let cell ← row[x']?
-      pure (cell, x', y')
+def advance (board : Rect width height Bool)
+  : Dir × (Fin width × Fin height)
+    → Advancement (Dir × (Fin width × Fin height))
+  | (d, (x, y)) =>
+    match
+      do
+        let (Δx, Δy) := d.delta
+        let p ← Rect.index? (x + Δx, y + Δy)
+        pure (board[p], p)
     with
     | none => .OffBoard
-    | some (true, _, _) => .Blocked (d.cw, x, y)
-    | some (false, x', y') => .Advanced (d, x', y')
+    | some (true, _) => .Blocked (d.cw, (x, y))
+    | some (false, p) => .Advanced (d, p)
 
-partial def solution1 : Array (Array Bool) × Nat × Nat → Nat
-  | (board, x₀, y₀) => go board (Dir.up, x₀, y₀)
+partial def solution1 : Input → Nat
+  | ⟨_, _, board, p₀⟩ => go board (Dir.up, p₀)
     (Lean.RBMap.empty (cmp:=(@lexOrd _ _ _ lexOrd).compare))
   where
-    go board p seen :=
+    go {width height} (board : Rect width height Bool) p seen :=
       let seen' := seen.insert p ()
       match advance board p with
       | .Advanced p' => go board p' seen'
       | .Blocked p' => go board p' seen'
-      | .OffBoard => seen'.fold (λm (_, x, y) _ => m.insert (x, y) Unit)
+      | .OffBoard => seen'.fold (λm (_, p) _ => m.insert p Unit)
         (Lean.RBMap.empty (cmp:=lexOrd.compare))
         |> Lean.RBMap.size
 
-partial def solution2 : Array (Array Bool) × Nat × Nat → Nat
-  | (board, x₀, y₀) => go1 board (Dir.up, x₀, y₀)
+partial def solution2 : Input → Nat
+  | ⟨_, _, board, p₀⟩ => go1 board (Dir.up, p₀)
     (Lean.RBMap.empty (cmp:=lexOrd.compare))
     (Lean.RBMap.empty (cmp:=(@lexOrd _ _ _ lexOrd).compare))
   where
-    go1 board p notchosen seen :=
+    go1 {width height} (board : Rect width height Bool) p notchosen seen :=
       let seen' := seen.insert p ()
       match advance board p with
       | .OffBoard => 0
       | .Blocked p' => go1 board p' notchosen seen'
       | .Advanced p' =>
-        let loc := (p'.2.1, p'.2.2)
-        if (notchosen.find? loc).isSome
+        if (notchosen.find? p'.2).isSome
         then go1 board p' notchosen seen'
+        else go2 (board.set p'.2 true) p seen
+          + go1 board p' (notchosen.insert p'.2 ()) seen'
+    go2 {width height} (board : Rect width height Bool) p seen
+      := if (seen.find? p).isSome
+        then 1
         else
-          let board' := board.modify loc.2 λrow => row.modify loc.1 λ_ => true
-          go2 board' p seen + go1 board p' (notchosen.insert loc ()) seen'
-    go2 board p seen := if (seen.find? p).isSome
-      then 1
-      else
-        let seen' := seen.insert p ()
-        match advance board p with
-        | .OffBoard => 0
-        | .Blocked p' => go2 board p' seen'
-        | .Advanced p' => go2 board p' seen'
+          let seen' := seen.insert p ()
+          match advance board p with
+          | .OffBoard => 0
+          | .Blocked p' => go2 board p' seen'
+          | .Advanced p' => go2 board p' seen'
 
 def main : IO Unit := IO.main parser solution1 solution2

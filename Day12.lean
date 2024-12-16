@@ -9,7 +9,7 @@ end Parser
 
 partial def solution1 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
-    let rec region seen
+    let rec region (seen : Rect width height Bool)
       | (x, y), ch =>
         let neighbors := [(1, 0), (0, 1), (-1, 0), (0, -1)].map
           λ(Δx, Δy) => Rect.index? (Int.ofNat x + Δx, Int.ofNat y + Δy)
@@ -21,16 +21,16 @@ partial def solution1 : SomeRect Char → Nat
               let (seen', area', perim') := region seen p ch
               (seen', area + area', perim + perim'))
           (seen.set (x, y) true, 1, neighbors.countP Option.isNone)
-    board.foldlIdx (λ(seen, sum) p ch => if seen[p]
+    board.foldlIdx (λ(seen, sum) p ch => if seen[p] = true
       then (seen, sum)
       else let (seen', area, perim) := region seen p ch
         (seen', sum + area * perim))
-      (Functor.mapConst false board, 0)
+      (Rect.mk false, 0)
       |> Prod.snd
 
 partial def solution2 : SomeRect Char → Nat
   | ⟨width, height, board⟩ =>
-    let rec region seen
+    let rec region (seen : Rect width height Bool)
       | (x, y), ch =>
         let neighbor := λ(Δx, Δy)
           => Rect.index? (Int.ofNat x + Δx, Int.ofNat y + Δy)
@@ -47,11 +47,11 @@ partial def solution2 : SomeRect Char → Nat
                 let (seen', area', corners') := region seen p ch
                 (seen', area + area', corners + corners'))
             (seen.set (x, y) true, 1, dirs.countP isCorner)
-    board.foldlIdx (λ(seen, sum) p ch => if seen[p]
+    board.foldlIdx (λ(seen, sum) p ch => if seen[p] = true
       then (seen, sum)
       else let (seen', area, corners) := region seen p ch
         (seen', sum + area * corners))
-      (Functor.mapConst false board, 0)
+      (Rect.mk false, 0)
       |> Prod.snd
 
 def main : IO Unit := IO.main parser solution1 solution2
