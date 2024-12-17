@@ -36,7 +36,7 @@ def parser : Parser Input := board <*> moves
       , Functor.mapConst .S (string "v")
       , Functor.mapConst .W (string "<")
       , Functor.mapConst .N (string "^")
-      ].foldl orElse default
+      ].foldl (· <|> ·) default
     moves := (move <* whitespace).many
 end Parser
 

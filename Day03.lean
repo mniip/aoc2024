@@ -8,16 +8,14 @@ inductive Insn where
 section Parser
 open Parser
 def parser : Parser (Array Insn)
-  := ((some <$> insn).orElse (Functor.mapConst none anyChar)).foldlMany
-    (λa m => m.elim a a.push)
-    Array.empty
+  := (some <$> insn <|> Functor.mapConst none anyChar).foldlMany
+    (λa m => Option.elim m a a.push)
+    #[]
   where
     insn :=
-      Parser.orElse
-        (string "mul(" *> Insn.Mul <$> int <* string "," <*> int <* string ")")
-        $ Parser.orElse
-          (Functor.mapConst Insn.Do $ string "do()")
-          (Functor.mapConst Insn.Dont $ string "don't()")
+      (string "mul(" *> Insn.Mul <$> int <* string "," <*> int <* string ")")
+        <|> (Functor.mapConst Insn.Do $ string "do()")
+        <|> (Functor.mapConst Insn.Dont $ string "don't()")
 end Parser
 
 def solution1 : Array Insn → Int

@@ -137,6 +137,6 @@ def Rect.findIdx? (pred : α → Bool) (r : Rect width height α)
           then some (⟨x, p⟩, ⟨y, q⟩)
           else goX (x + 1)
         else none
-      (goX 0).orElse λ_ => goY (y + 1)
+      goX 0 <|> goY (y + 1)
     else none
   goY 0

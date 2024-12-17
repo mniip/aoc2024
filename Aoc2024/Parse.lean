@@ -42,13 +42,13 @@ def Parser.bytes (bytes : ByteArray) : Parser Unit
 
 def Parser.string (s : String) : Parser Unit := bytes s.toUTF8
 
-def Parser.orElse (p q : Parser α) : Parser α
-  := λb n => match p b n with
+instance : OrElse (Parser α) where
+  orElse p q := λb n => match p b n with
     | some (x, n') => some (x, n')
-    | none => q b n
+    | none => q () b n
 
 def Parser.optional (p : Parser α) : Parser (Option α)
-  := (some <$> p).orElse (pure none)
+  := some <$> p <|> pure none
 
 def Parser.filterMap (f : α → Option β) (p : Parser α) : Parser β
   := λb n => do
@@ -70,12 +70,12 @@ partial def Parser.loop (p : α → Parser (Sum β α)) (init : α) : Parser β
 
 def Parser.until (p : Parser α) (q : Parser β) : Parser (Array α)
   := Parser.loop
-    (λxs => (Functor.mapConst (.inl xs) q).orElse ((.inr ∘ xs.push) <$> p))
+    (λxs => Functor.mapConst (.inl xs) q <|> (.inr ∘ xs.push) <$> p)
     Array.empty
 
 def Parser.foldlMany (f : α → β → α) (init : α) (p : Parser β)
   : Parser α
-  := Parser.loop (λx => ((.inr ∘ f x) <$> p).orElse (pure (.inl x))) init
+  := Parser.loop (λx => (.inr ∘ f x) <$> p <|> pure (.inl x)) init
 
 def Parser.foldlMany1 (f : α → β → α) (init : β → α) (p : Parser β)
   : Parser α
