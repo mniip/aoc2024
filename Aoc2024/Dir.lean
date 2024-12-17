@@ -3,7 +3,7 @@ inductive Dir4 : Type where
   | S
   | W
   | N
-  deriving Ord
+  deriving BEq, Ord
 
 def Dir4.list : List Dir4 := [E, S, W, N]
 
@@ -54,7 +54,7 @@ inductive Dir8 : Type where
   | NW
   | N
   | NE
-  deriving Ord
+  deriving BEq, Ord
 
 def Dir8.list : List Dir8 := [E, SE, S, SW, W, NW, N, NE]
 
